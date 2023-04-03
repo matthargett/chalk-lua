@@ -17,7 +17,6 @@ type Object = { [string]: any }
 local ansiStyles = require(script.Parent.vendor["ansi-styles"])
 local supportsColor = require(script.Parent.vendor["supports-color"])
 local utilities = require(script.Parent.utilities)
--- eslint-disable-line import/order
 local stringReplaceAll = String.replaceAll
 local stringEncaseCRLFWithFirstIndex = utilities.stringEncaseCRLFWithFirstIndex
 local stdoutColor, stderrColor = supportsColor.stdout, supportsColor.stderr
@@ -44,7 +43,6 @@ type Chalk_statics = { new: (options: any) -> ChalkClass }
 local ChalkClass = {} :: ChalkClass & Chalk_statics;
 (ChalkClass :: any).__index = ChalkClass
 function ChalkClass.new(options): ChalkClass
-	-- eslint-disable-next-line no-constructor-return
 	return chalkFactory(options)
 end
 
@@ -134,12 +132,9 @@ function createBuilder(self, _styler, _isEmpty)
 		__call = function(_self, ...)
 			local firstArgument = select(1, ...)
 			if Array.isArray(firstArgument) then
-				-- Lua note: Lua doesn't support template literals, but still support the array case
-				-- Called as a template literal, for example: chalk.red`2 + 3 = {bold ${2+3}}`
 				return applyStyle(builder, chalkTag(builder, ...))
 			end
 			-- Single argument is hot path, implicit coercion is faster than anything
-			-- eslint-disable-next-line no-implicit-coercion
 			return applyStyle(
 				builder,
 				if select("#", ...) == 1
