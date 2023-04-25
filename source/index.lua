@@ -89,7 +89,7 @@ end
 
 styles.visible = (function()
 	local this = styles.visible
-	createBuilder(this, this._styler, true)
+	return createBuilder(this, this._styler, true)
 end)()
 
 local usedModels = { "rgb", "hex", "keyword", "hsl", "hsv", "hwb", "ansi", "ansi256" }
