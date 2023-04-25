@@ -73,7 +73,7 @@ exports.join = function<T>(array: Array<T>, separator: string?): string
     else table.concat(array, separator or ",")
 end
 
--- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
+-- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reverse
 exports.reverse = function<T>(array: Array<T>): Array<T>
   local end_ = #array
   local start = 1
