@@ -53,31 +53,12 @@ exports.isArray = function(val: any): boolean
   end
 
   -- the slow part, verifying each index is a positive, whole number. a Lua VM built-in would be nice.
-  for key, _ in pairs(val) do
-    if type(key) ~= "number" then
+  local expectedIndex = 1
+  for key, _ in val do
+    if key ~= expectedIndex then
       return false
     end
-    if key < 1 then
-      -- Lua arrays start at 1, a 0 index means it's not a pure Lua array
-      return false
-    end
-    -- Lua TODO: would math.floor be faster? needs a benchmark
-    if (key % 1) ~= 0 then
-      -- if the number key isn't a whole number, it's not a pure Lua array
-      return false
-    end
-
-    if key > tableLength then
-      -- if we get a numeric key larger than the length operator reports, this isn't a contiguous array
-      return false
-    end
-
-    if key ~= tableLength then
-      -- if we're not at the end of a contiguous array, the value in the index slot should be non-nil
-      if nil == val[key + 1] then
-        return false
-      end
-    end
+    expectedIndex += 1
   end
 
   return true
