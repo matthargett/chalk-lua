@@ -74,7 +74,7 @@ exports.join = function<T>(array: Array<T>, separator: string?): string
 end
 
 -- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
-exports.reverse = function(array: Array<any>): Array<any>
+exports.reverse = function<T>(array: Array<T>): Array<T>
   local end_ = #array
   local start = 1
   while start < end_ do
