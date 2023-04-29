@@ -53,7 +53,7 @@ exports.isArray = function(val: any): boolean
 	end
 
 	-- the slow part, verifying each index is a positive, whole number. a Lua VM built-in would be nice.
-	for key, _ in pairs(val) do
+	for key in val do
 		if type(key) ~= "number" then
 			return false
 		end

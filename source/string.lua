@@ -20,17 +20,17 @@ exports.charCodeAt = function(str: string, index: number): number
 	return if result == nil then NaN else result
 end
 
-exports.lastIndexOf = function(str: string, findValue: string, _fromIndex: number?): number
+exports.lastIndexOf = function(str: string, findValue: string, fromIndex_: number?): number
 	-- explicitly use string.len to help bytecode compiler/JIT/interpreter avoid dynamic dispatch
 	local stringLength = string.len(str)
 	local fromIndex
-	if _fromIndex == nil then
+	if fromIndex_ == nil then
 		fromIndex = stringLength
 	else
-		if _fromIndex > stringLength then
+		if fromIndex_ > stringLength then
 			fromIndex = stringLength
-		elseif _fromIndex > 0 then
-			fromIndex = _fromIndex
+		elseif fromIndex_ > 0 then
+			fromIndex = fromIndex_
 		else
 			fromIndex = 1
 		end
@@ -67,7 +67,7 @@ exports.replace = function(str: string, regExp: RegExp, replaceFunction: Replace
 		-- Lua FIXME: type analysis doesn't understand  mixed array+object like: Array<string> | { key: type }
 		local m = (match :: Array<string>)[1]
 		local args: Array<string | number> = Array.slice(match, 1, match.n + 1)
-		local index = match.index + offset
+		local index = match.index :: number + offset
 
 		table.insert(args, index)
 
@@ -96,6 +96,28 @@ exports.replace = function(str: string, regExp: RegExp, replaceFunction: Replace
 	return result
 end
 
+exports.slice = function(str: string, startIndex: number, lastIndex_: number?): string
+	local stringLength = string.len(str)
+
+	-- picomatch ends up relying on this subtle behavior when jest calls into it
+	if startIndex + stringLength < 0 then
+		startIndex = 1
+	end
+
+	if startIndex > stringLength then
+		return ""
+	end
+
+	local lastIndex = lastIndex_ or stringLength + 1
+
+	-- utf8 support needed to pass picomatch tests
+	local utf8OffsetStart = utf8.offset(str, startIndex)
+	assert(utf8OffsetStart ~= nil, "invalid utf8")
+	local utf8OffsetEnd = utf8.offset(str, lastIndex) :: any - 1
+
+	return string.sub(str, utf8OffsetStart, utf8OffsetEnd)
+end
+
 -- TODO: support utf8 and the substring "" case documented in MDN
 -- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replaceAll
 exports.replaceAll = function(str: string, substring: string, replacer)
@@ -117,28 +139,6 @@ exports.replaceAll = function(str: string, substring: string, replacer)
 
 	output ..= exports.slice(str, endIndex)
 	return output
-end
-
-exports.slice = function(str: string, startIndex: number, lastIndex_: number?): string
-	local stringLength = string.len(str)
-
-	-- picomatch ends up relying on this subtle behavior when jest calls into it
-	if startIndex + stringLength < 0 then
-		startIndex = 1
-	end
-
-	if startIndex > stringLength then
-		return ""
-	end
-
-	local lastIndex = lastIndex_ or stringLength + 1
-
-	-- utf8 support needed to pass picomatch tests
-	local utf8OffsetStart = utf8.offset(str, startIndex)
-	assert(utf8OffsetStart ~= nil, "invalid utf8")
-	local utf8OffsetEnd = utf8.offset(str, lastIndex) :: any - 1
-
-	return string.sub(str, utf8OffsetStart, utf8OffsetEnd)
 end
 
 exports.startsWith = function(str: string, findValue: string, position: number?): boolean

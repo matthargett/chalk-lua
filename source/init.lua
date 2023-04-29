@@ -11,12 +11,12 @@
 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]
 --!strict
-local Array = require(script.Parent.array)
-local String = require(script.Parent.string)
+local Array = require(script.array)
+local String = require(script.string)
 type Object = { [string]: any }
-local ansiStyles = require(script.Parent.vendor["ansi-styles"])
-local supportsColor = require(script.Parent.vendor["supports-color"])
-local utilities = require(script.Parent.utilities)
+local ansiStyles = require(script.vendor["ansi-styles"])
+local supportsColor = require(script.vendor["supports-color"])
+local utilities = require(script.utilities)
 local stringReplaceAll = String.replaceAll
 local stringEncaseCRLFWithFirstIndex = utilities.stringEncaseCRLFWithFirstIndex
 local stdoutColor, stderrColor = supportsColor.stdout, supportsColor.stderr
@@ -57,8 +57,10 @@ function chalkFactory(options)
 			createChalk(options)
 		end,
 	})
-	setmetatable(chalk.template, chalk)
 	setmetatable(chalk.template, {
+		__call = function(_self, options)
+			createChalk(options)
+		end,
 		__newindex = function(self, key, value)
 			if key == "new" then
 				error("'chalk.constructor()' is deprecated. Use 'new chalk.Instance()' instead.")
@@ -112,7 +114,7 @@ for _, model in usedModels do
 	end)()
 end
 
-function createStyler(open, close, parent: any?)
+function createStyler(open: string, close: string, parent: any?)
 	local openAll
 	local closeAll
 	if parent == nil then
@@ -125,7 +127,7 @@ function createStyler(open, close, parent: any?)
 	return { open = open, close = close, openAll = openAll, closeAll = closeAll, parent = parent }
 end
 
-function createBuilder(self, _styler, _isEmpty)
+function createBuilder(self, styler, isEmpty)
 	local builder = {} :: any
 	setmetatable(builder, {
 		__call = function(_self, ...)
@@ -158,8 +160,8 @@ function createBuilder(self, _styler, _isEmpty)
 		builder[k] = v
 	end
 	builder._generator = self
-	builder._styler = _styler
-	builder._isEmpty = _isEmpty
+	builder._styler = styler
+	builder._isEmpty = isEmpty
 	return builder
 end
 function applyStyle(self, string_)

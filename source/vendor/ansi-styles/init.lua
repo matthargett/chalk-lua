@@ -12,7 +12,6 @@
 ]]
 
 --!strict
-local Array = require(script.Parent.Parent.Parent.array)
 local Object = {}
 function Object.keys(object)
 	local keys = {}
@@ -22,7 +21,7 @@ function Object.keys(object)
 	return keys
 end
 
-local types = require(script.Parent["types"])
+local types = require(script.types)
 type ansiStyles = types.ansiStyles
 
 local ANSI_BACKGROUND_OFFSET = 10
@@ -182,7 +181,7 @@ local function assembleStyles(): ansiStyles
 		__index = function(self, key): any
 			if key == "hexToAnsi256" then
 				return function(hex: string): number
-					return (styles :: ansiStyles):rgbToAnsi256(table.unpack((styles :: ansiStyles):hexToRgb(hex)))
+					return styles:rgbToAnsi256(table.unpack(styles:hexToRgb(hex)))
 				end
 			elseif key == "ansi256ToAnsi" then
 				return function(code: number)
