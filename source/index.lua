@@ -69,7 +69,7 @@ function chalkFactory(options)
 	for styleName, style in pairs(styles) do
 		chalk[styleName] = style
 	end
-	
+
 	chalk.template.Instance = ChalkClass
 	return chalk.template
 end
@@ -81,8 +81,7 @@ end
 for _, ansiStyleEntry in ansiStyles do
 	for styleName, style in ansiStyleEntry do
 		local this = styles
-		local builder =
-			createBuilder(this, createStyler(style.open, style.close, this._styler), this._isEmpty)
+		local builder = createBuilder(this, createStyler(style.open, style.close, this._styler), this._isEmpty)
 		this[styleName] = builder
 	end
 end
@@ -103,7 +102,7 @@ for _, model in usedModels do
 		return createBuilder(this, styler, this._isEmpty)
 	end)()
 
-	local bgModel = "bg" .. string.upper(string.sub(model, 1,1)) .. String.slice(model, 1)
+	local bgModel = "bg" .. string.upper(string.sub(model, 1, 1)) .. String.slice(model, 1)
 	styles[bgModel] = (function(...)
 		local this = styles[bgModel]
 		local level = this.level :: number
@@ -137,9 +136,7 @@ function createBuilder(self, _styler, _isEmpty)
 			-- Single argument is hot path, implicit coercion is faster than anything
 			return applyStyle(
 				builder,
-				if select("#", ...) == 1
-					then tostring(firstArgument)
-					else table.concat({...}, " ")
+				if select("#", ...) == 1 then tostring(firstArgument) else table.concat({ ... }, " ")
 			)
 		end,
 		__index = function(self, key)
@@ -160,9 +157,9 @@ function createBuilder(self, _styler, _isEmpty)
 	for k, v in styles do
 		builder[k] = v
 	end
-	builder._generator = self;
-	builder._styler = _styler;
-	builder._isEmpty = _isEmpty;
+	builder._generator = self
+	builder._styler = _styler
+	builder._isEmpty = _isEmpty
 	return builder
 end
 function applyStyle(self, string_)
@@ -182,7 +179,7 @@ function applyStyle(self, string_)
 			string_ = stringReplaceAll(string_, styler.close, styler.open)
 			styler = styler.parent
 		end
-	end 
+	end
 	-- We can move both next actions out of loop, because remaining actions in loop won't have
 	-- any/visible effect on parts we add here. Close the styling before a linebreak and reopen
 	-- after next line to fix a bleed issue on macOS: https://github.com/chalk/chalk/pull/92
@@ -193,12 +190,12 @@ function applyStyle(self, string_)
 	return openAll .. string_ .. closeAll
 end
 
-function chalkTag (_chalk, ...: string)
+function chalkTag(_chalk, ...: string)
 	local firstString = select(1, ...)
 	if not Array.isArray(firstString) then
 		-- If chalk() was called by itself or with a string,
 		-- return the string itself as a string.
-		return table.concat({...}, " ")
+		return table.concat({ ... }, " ")
 	end
 
 	error("Lua port of chalk does not support template literals")
@@ -210,6 +207,5 @@ chalk.stderr = createChalk({
 	level = if stderrColor then stderrColor.level else 0,
 })
 chalk.stderr.supportsColor = stderrColor
-
 
 return chalk
