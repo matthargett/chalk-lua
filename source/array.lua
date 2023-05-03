@@ -132,6 +132,43 @@ exports.slice = function<T>(array: Array<T>, startIndex_: number?, endIndex_: nu
 	return result
 end
 
+-- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some
+type arraySomeCallbackFunction<T> = (value: T, index: number, array: Array<T>) -> boolean
+type arraySomeCallbackFunctionWithSelfArgument<T> = (self: Object, value: T, index: number, array: Array<T>) -> boolean
+exports.some = function<T>(
+	array: Array<T>,
+	callback: arraySomeCallbackFunction<T> | arraySomeCallbackFunctionWithSelfArgument<T>,
+	selfArgument: Object?
+): boolean
+	local i = 1
+	local length = #array
+
+	if selfArgument == nil then
+		while i <= length do
+			local inputValue = array[i]
+			-- Lua BUG: type solver says callback isn't callable, but it is
+			if inputValue ~= nil and (callback :: arraySomeCallbackFunction<T>)(inputValue, i, array) then
+				return true
+			end
+			i += 1
+		end
+	else
+		while i <= length do
+			local inputValue = array[i]
+			-- Lua BUG: type solver says callback isn't callable, but it is
+			if
+				inputValue ~= nil
+				and (callback :: arraySomeCallbackFunctionWithSelfArgument<T>)(selfArgument, inputValue, i, array)
+			then
+				return true
+			end
+			i += 1
+		end
+	end
+
+	return false
+end
+
 -- this replicates the behavior that mixed Arrays of numbers and strings containing numbers
 -- sort the *number* 6 before the *string* 6, and before *userdata* 6,  which is relied upon by jest and GraphQL
 local function builtinSort<T>(one: T, another: T): boolean

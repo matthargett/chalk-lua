@@ -43,78 +43,80 @@ local function wrapAnsi16m(offset_: number?)
 		return ("%c[%d;2;%s;%s;%sm"):format(27, 38 + offset, tostring(red), tostring(green), tostring(blue))
 	end
 end
-local styles = {
-	modifier = {
-		reset = { 0, 0 },
-		-- 21 isn't widely supported and 22 does the same thing
-		bold = { 1, 22 },
-		dim = { 2, 22 },
-		italic = { 3, 23 },
-		underline = { 4, 24 },
-		overline = { 53, 55 },
-		inverse = { 7, 27 },
-		hidden = { 8, 28 },
-		strikethrough = { 9, 29 },
-	},
-	color = {
-		black = { 30, 39 },
-		red = { 31, 39 },
-		green = { 32, 39 },
-		yellow = { 33, 39 },
-		blue = { 34, 39 },
-		magenta = { 35, 39 },
-		cyan = { 36, 39 },
-		white = { 37, 39 },
-		-- Bright color
-		blackBright = { 90, 39 },
-		gray = { 90, 39 },
-		-- Alias of `blackBright`
-		grey = { 90, 39 },
-		-- Alias of `blackBright`
-		redBright = { 91, 39 },
-		greenBright = { 92, 39 },
-		yellowBright = { 93, 39 },
-		blueBright = { 94, 39 },
-		magentaBright = { 95, 39 },
-		cyanBright = { 96, 39 },
-		whiteBright = { 97, 39 },
-	},
-	bgColor = {
-		bgBlack = { 40, 49 },
-		bgRed = { 41, 49 },
-		bgGreen = { 42, 49 },
-		bgYellow = { 43, 49 },
-		bgBlue = { 44, 49 },
-		bgMagenta = { 45, 49 },
-		bgCyan = { 46, 49 },
-		bgWhite = { 47, 49 },
-		-- Bright color
-		bgBlackBright = { 100, 49 },
-		bgGray = { 100, 49 },
-		-- Alias of `bgBlackBright`
-		bgGrey = { 100, 49 },
-		-- Alias of `bgBlackBright`
-		bgRedBright = { 101, 49 },
-		bgGreenBright = { 102, 49 },
-		bgYellowBright = { 103, 49 },
-		bgBlueBright = { 104, 49 },
-		bgMagentaBright = { 105, 49 },
-		bgCyanBright = { 106, 49 },
-		bgWhiteBright = { 107, 49 },
-	},
-}
+local styles = (
+	{
+		modifier = {
+			reset = { 0, 0 },
+			-- 21 isn't widely supported and 22 does the same thing
+			bold = { 1, 22 },
+			dim = { 2, 22 },
+			italic = { 3, 23 },
+			underline = { 4, 24 },
+			overline = { 53, 55 },
+			inverse = { 7, 27 },
+			hidden = { 8, 28 },
+			strikethrough = { 9, 29 },
+		},
+		color = {
+			black = { 30, 39 },
+			red = { 31, 39 },
+			green = { 32, 39 },
+			yellow = { 33, 39 },
+			blue = { 34, 39 },
+			magenta = { 35, 39 },
+			cyan = { 36, 39 },
+			white = { 37, 39 },
+			-- Bright color
+			blackBright = { 90, 39 },
+			gray = { 90, 39 },
+			-- Alias of `blackBright`
+			grey = { 90, 39 },
+			-- Alias of `blackBright`
+			redBright = { 91, 39 },
+			greenBright = { 92, 39 },
+			yellowBright = { 93, 39 },
+			blueBright = { 94, 39 },
+			magentaBright = { 95, 39 },
+			cyanBright = { 96, 39 },
+			whiteBright = { 97, 39 },
+		},
+		bgColor = {
+			bgBlack = { 40, 49 },
+			bgRed = { 41, 49 },
+			bgGreen = { 42, 49 },
+			bgYellow = { 43, 49 },
+			bgBlue = { 44, 49 },
+			bgMagenta = { 45, 49 },
+			bgCyan = { 46, 49 },
+			bgWhite = { 47, 49 },
+			-- Bright color
+			bgBlackBright = { 100, 49 },
+			bgGray = { 100, 49 },
+			-- Alias of `bgBlackBright`
+			bgGrey = { 100, 49 },
+			-- Alias of `bgBlackBright`
+			bgRedBright = { 101, 49 },
+			bgGreenBright = { 102, 49 },
+			bgYellowBright = { 103, 49 },
+			bgBlueBright = { 104, 49 },
+			bgMagentaBright = { 105, 49 },
+			bgCyanBright = { 106, 49 },
+			bgWhiteBright = { 107, 49 },
+		},
+	} :: any
+) :: ansiStyles
 
 local function assembleStyles(): ansiStyles
 	local codes = {}
 	-- Lua note: needs manual pairs() iteration because type solver is confused
 	for _, group in pairs(styles) do
 		for styleName, style in group do
-			styles[styleName] = {
+			(styles :: any)[styleName] = {
 				open = ("%c[%dm"):format(27, style[1]),
 				close = ("%c[%dm"):format(27, style[2]),
 			}
 
-			group[styleName] = styles[styleName]
+			group[styleName] = (styles :: any)[styleName]
 			codes[style[1]] = style[2]
 		end
 		-- Lua note: this is how you make properties on a table non-enumerable
@@ -122,11 +124,9 @@ local function assembleStyles(): ansiStyles
 			__index = function(self, key): any
 				if key == "groupName" then
 					return group
-				end
-				if key == "codes" then
+				elseif key == "codes" then
 					return codes
-				end
-				if key == "rgbToAnsi256" then
+				elseif key == "rgbToAnsi256" then
 					return function(red: number, green: number, blue: number): number
 						-- We use the extended greyscale palette here, with the exception of
 						-- black and white. normal palette only has 4 greyscale shades.
@@ -144,9 +144,8 @@ local function assembleStyles(): ansiStyles
 							+ 6 * math.round(green / 255 * 5)
 							+ math.round(blue / 255 * 5)
 					end
-				end
-				if key == "hexToRgb" then
-					return function(hex: string): { number }
+				elseif key == "hexToRgb" then
+					return function(hex: string): (number, number, number)
 						local red = tonumber(string.sub(hex, 2, 3), 16)
 						local green = tonumber(string.sub(hex, 6, 7), 16)
 						local blue = tonumber(string.sub(hex, 4, 5), 16)
@@ -158,10 +157,60 @@ local function assembleStyles(): ansiStyles
 							or green ~= green
 							or blue ~= blue
 						then
-							return { 0, 0, 0 }
+							return 0, 0, 0
 						end
 
-						return { red :: number, green :: number, blue :: number }
+						return red :: number, green :: number, blue :: number
+					end
+				elseif key == "hexToAnsi256" then
+					return function(hex: string): number
+						return styles.rgbToAnsi256(styles.hexToRgb(hex))
+					end
+				elseif key == "ansi256ToAnsi" then
+					return function(code: number)
+						if code < 8 then
+							return 30 + code
+						end
+						if code < 16 then
+							return 90 + (code - 8)
+						end
+						local red
+						local green
+						local blue
+						if code >= 232 then
+							red = ((code - 232) * 10 + 8) / 255
+							green = red
+							blue = red
+						else
+							code -= 16
+							local remainder = code % 36
+							red = math.floor(code / 36) / 5
+							green = math.floor(remainder / 6) / 5
+							blue = remainder % 6 / 5
+						end
+						local value = math.max(red, green, blue) * 2
+						if value == 0 then
+							return 30
+						end
+						local result = 30
+							+ bit32.bor(
+								bit32.bor(bit32.lshift(math.round(blue), 2), bit32.lshift(math.round(green), 1)),
+								math.round(red)
+							)
+						if value == 2 then
+							result += 60
+						end
+						return result
+					end
+				elseif key == "rgbToAnsi" then
+					return function(red: number, green: number, blue: number): number
+						return (styles :: ansiStyles).ansi256ToAnsi(
+							(styles :: ansiStyles).rgbToAnsi256(red, green, blue)
+						)
+					end
+				elseif key == "hexToAnsi" then
+					return function(hex: string): number
+						return (styles :: ansiStyles).ansi256ToAnsi((styles :: ansiStyles).hexToAnsi256(hex))
 					end
 				end
 				return rawget(self, key)
@@ -175,64 +224,9 @@ local function assembleStyles(): ansiStyles
 	styles.color.ansi16m = wrapAnsi16m()
 	styles.bgColor.ansi = wrapAnsi16(ANSI_BACKGROUND_OFFSET)
 	styles.bgColor.ansi256 = wrapAnsi256(ANSI_BACKGROUND_OFFSET)
-	styles.bgColor.ansi16mpfore = wrapAnsi16m(ANSI_BACKGROUND_OFFSET)
-	-- From https://github.com/Qix-/color-convert/blob/3f0e0d4e92e235796ccb17f6e85c72094a651f49/conversions.js
-	setmetatable(styles, {
-		__index = function(self, key): any
-			if key == "hexToAnsi256" then
-				return function(hex: string): number
-					return styles:rgbToAnsi256(table.unpack(styles:hexToRgb(hex)))
-				end
-			elseif key == "ansi256ToAnsi" then
-				return function(code: number)
-					if code < 8 then
-						return 30 + code
-					end
-					if code < 16 then
-						return 90 + (code - 8)
-					end
-					local red
-					local green
-					local blue
-					if code >= 232 then
-						red = ((code - 232) * 10 + 8) / 255
-						green = red
-						blue = red
-					else
-						code -= 16
-						local remainder = code % 36
-						red = math.floor(code / 36) / 5
-						green = math.floor(remainder / 6) / 5
-						blue = remainder % 6 / 5
-					end
-					local value = math.max(red, green, blue) * 2
-					if value == 0 then
-						return 30
-					end
-					local result = 30
-						+ bit32.bor(
-							bit32.bor(bit32.lshift(math.round(blue), 2), bit32.lshift(math.round(green), 1)),
-							math.round(red)
-						)
-					if value == 2 then
-						result += 60
-					end
-					return result
-				end
-			elseif key == "rgbToAnsi" then
-				return function(red: number, green: number, blue: number): number
-					return (styles :: ansiStyles):ansi256ToAnsi((styles :: ansiStyles):rgbToAnsi256(red, green, blue))
-				end
-			elseif key == "hexToAnsi" then
-				return function(hex: string): number
-					return (styles :: ansiStyles):ansi256ToAnsi((styles :: ansiStyles):hexToAnsi256(hex))
-				end
-			end
-			return rawget(self, key)
-		end,
-	})
+	styles.bgColor.ansi16m = wrapAnsi16m(ANSI_BACKGROUND_OFFSET)
 
-	return styles
+	return (styles :: any) :: ansiStyles
 end
 local ansiStyles: ansiStyles = assembleStyles()
 return ansiStyles
