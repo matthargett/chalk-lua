@@ -4,9 +4,9 @@
     Attributions and copyright licensing by Mozilla Contributors is licensed under CC-BY-SA 2.5
 ]]
 --!strict
-local Array = require(script.Parent.array)
+local Array = require("./array.lua")
 type Array<T> = Array.Array<T>
-local RegExp = require(script.Parent.regex)
+local RegExp = require("./regex.lua")
 type RegExp = RegExp.RegExp
 local exports = {}
 

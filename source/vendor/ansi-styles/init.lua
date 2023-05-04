@@ -21,7 +21,7 @@ function Object.keys(object)
 	return keys
 end
 
-local types = require(script.types)
+local types = require("./types.lua")
 type ansiStyles = types.ansiStyles
 
 local ANSI_BACKGROUND_OFFSET = 10
@@ -111,13 +111,16 @@ local function assembleStyles(): ansiStyles
 	-- Lua note: needs manual pairs() iteration because type solver is confused
 	for _, group in pairs(styles) do
 		for styleName, style in group do
-			(styles :: any)[styleName] = {
-				open = ("%c[%dm"):format(27, style[1]),
-				close = ("%c[%dm"):format(27, style[2]),
-			}
+			-- Lua FIXME: style ends up being nil sometimes
+			if style[1] then
+				(styles :: any)[styleName] = {
+					open = ("%c[%dm"):format(27, style[1]),
+					close = ("%c[%dm"):format(27, style[2]),
+				}
 
-			group[styleName] = (styles :: any)[styleName]
-			codes[style[1]] = style[2]
+				group[styleName] = (styles :: any)[styleName]
+				codes[style[1]] = style[2]
+			end
 		end
 		-- Lua note: this is how you make properties on a table non-enumerable
 		setmetatable(styles, {

@@ -11,22 +11,100 @@
 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]
 --!strict
-local Array = require(script.array)
-local String = require(script.string)
+local Array = require("./array")
+local String = require("./string")
 type Object = { [string]: any }
-local ansiStyles = require(script.vendor["ansi-styles"])
-local supportsColor = require(script.vendor["supports-color"])
-local utilities = require(script.utilities)
+local ansiStyles = require("./vendor/ansi-styles/init.lua")
+local supportsColor = require("./vendor/supports-color/init.lua")
+local utilities = require("./utilities")
 local stringReplaceAll = String.replaceAll
 local stringEncaseCRLFWithFirstIndex = utilities.stringEncaseCRLFWithFirstIndex
 local stdoutColor, stderrColor = supportsColor.stdout, supportsColor.stderr
 -- `supportsColor.level` → `ansiStyles.color[name]` mapping
 local levelMapping = { "ansi", "ansi", "ansi256", "ansi16m" }
 local styles = {}
-local createStyler, createBuilder, createChalk
-local applyStyle
+local createChalk
 local chalkFactory
 local chalkTag
+
+local function createStyler(open: string, close: string, parent: any?)
+	local openAll
+	local closeAll
+	if parent == nil then
+		openAll = open
+		closeAll = close
+	else
+		openAll = parent.openAll .. open
+		closeAll = close .. parent.closeAll
+	end
+	return { open = open, close = close, openAll = openAll, closeAll = closeAll, parent = parent }
+end
+
+local function applyStyle(self, string_)
+	if self.level <= 0 or string_ == nil or string.len(string_) == 0 then
+		return if self._isEmpty then "" else string_
+	end
+	local styler = self._styler
+	if styler == nil then
+		return string_
+	end
+	local openAll, closeAll = styler.openAll, styler.closeAll
+	if string.match(string_, "\u{001B}") then
+		while styler ~= nil do
+			-- Replace any instances already present with a re-opening code
+			-- otherwise only the part of the string until said closing code
+			-- will be colored, and the rest will simply be 'plain'.
+			string_ = stringReplaceAll(string_, styler.close, styler.open)
+			styler = styler.parent
+		end
+	end
+	-- We can move both next actions out of loop, because remaining actions in loop won't have
+	-- any/visible effect on parts we add here. Close the styling before a linebreak and reopen
+	-- after next line to fix a bleed issue on macOS: https://github.com/chalk/chalk/pull/92
+	local lfIndex = string.find(string_, "\n")
+	if lfIndex then
+		string_ = stringEncaseCRLFWithFirstIndex(string_, closeAll, openAll, lfIndex)
+	end
+	return openAll .. string_ .. closeAll
+end
+
+local function createBuilder(self, styler, isEmpty)
+	local builder = {} :: any
+	setmetatable(builder, {
+		__call = function(_self, ...)
+			local firstArgument = select(1, ...)
+			if Array.isArray(firstArgument) then
+				return applyStyle(builder, chalkTag(builder, ...))
+			end
+			-- Single argument is hot path, implicit coercion is faster than anything
+			return applyStyle(
+				builder,
+				if select("#", ...) == 1 then tostring(firstArgument) else table.concat({ ... }, " ")
+			)
+		end,
+		__index = function(self, key)
+			if key == "level" then
+				return self._generator.level
+			end
+			return rawget(self, key)
+		end,
+
+		__newindex = function(self, key, level)
+			if key == "level" then
+				self._generator.level = level
+			end
+			rawset(self, key, level)
+		end,
+	})
+	-- no way to create a function with a different prototype
+	for k, v in styles do
+		builder[k] = v
+	end
+	builder._generator = self
+	builder._styler = styler
+	builder._isEmpty = isEmpty
+	return builder
+end
 
 local function applyOptions(object, options_: Object?)
 	local options: Object = if options_ ~= nil then options_ else {}
@@ -81,11 +159,12 @@ function createChalk(options)
 end
 
 for _, ansiStyleEntry in ansiStyles do
-	for styleName, style in ansiStyleEntry do
-		local this = styles
-		local builder = createBuilder(this, createStyler(style.open, style.close, this._styler), this._isEmpty)
-		this[styleName] = builder
-	end
+	local this = styles
+	local styleName = ansiStyleEntry[1]
+	local style = ansiStyleEntry[2]
+	-- Lua FIXME: style is nil
+	local builder = createBuilder(this, createStyler(style.open, style.close, this._styler), this._isEmpty)
+	this[styleName] = builder
 end
 
 styles.visible = (function()
@@ -112,84 +191,6 @@ for _, model in usedModels do
 			createStyler(ansiStyles.bgColor[levelMapping[level]][model](...), ansiStyles.bgColor.close, this._styler)
 		return createBuilder(this, styler, this._isEmpty)
 	end)()
-end
-
-function createStyler(open: string, close: string, parent: any?)
-	local openAll
-	local closeAll
-	if parent == nil then
-		openAll = open
-		closeAll = close
-	else
-		openAll = parent.openAll .. open
-		closeAll = close .. parent.closeAll
-	end
-	return { open = open, close = close, openAll = openAll, closeAll = closeAll, parent = parent }
-end
-
-function createBuilder(self, styler, isEmpty)
-	local builder = {} :: any
-	setmetatable(builder, {
-		__call = function(_self, ...)
-			local firstArgument = select(1, ...)
-			if Array.isArray(firstArgument) then
-				return applyStyle(builder, chalkTag(builder, ...))
-			end
-			-- Single argument is hot path, implicit coercion is faster than anything
-			return applyStyle(
-				builder,
-				if select("#", ...) == 1 then tostring(firstArgument) else table.concat({ ... }, " ")
-			)
-		end,
-		__index = function(self, key)
-			if key == "level" then
-				return self._generator.level
-			end
-			return rawget(self, key)
-		end,
-
-		__newindex = function(self, key, level)
-			if key == "level" then
-				self._generator.level = level
-			end
-			rawset(self, key, level)
-		end,
-	})
-	-- no way to create a function with a different prototype
-	for k, v in styles do
-		builder[k] = v
-	end
-	builder._generator = self
-	builder._styler = styler
-	builder._isEmpty = isEmpty
-	return builder
-end
-function applyStyle(self, string_)
-	if self.level <= 0 or string_ == nil or string.len(string_) == 0 then
-		return if self._isEmpty then "" else string_
-	end
-	local styler = self._styler
-	if styler == nil then
-		return string_
-	end
-	local openAll, closeAll = styler.openAll, styler.closeAll
-	if string.match(string_, "\u{001B}") then
-		while styler ~= nil do
-			-- Replace any instances already present with a re-opening code
-			-- otherwise only the part of the string until said closing code
-			-- will be colored, and the rest will simply be 'plain'.
-			string_ = stringReplaceAll(string_, styler.close, styler.open)
-			styler = styler.parent
-		end
-	end
-	-- We can move both next actions out of loop, because remaining actions in loop won't have
-	-- any/visible effect on parts we add here. Close the styling before a linebreak and reopen
-	-- after next line to fix a bleed issue on macOS: https://github.com/chalk/chalk/pull/92
-	local lfIndex = string.find(string_, "\n")
-	if lfIndex then
-		string_ = stringEncaseCRLFWithFirstIndex(string_, closeAll, openAll, lfIndex)
-	end
-	return openAll .. string_ .. closeAll
 end
 
 function chalkTag(_chalk, ...: string)

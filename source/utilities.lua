@@ -1,5 +1,5 @@
 --!strict
-local String = require(script.Parent.string)
+local String = require("./string")
 
 return {
 	stringEncaseCRLFWithFirstIndex = function(str: string, prefix: string, postfix: string, index: number): string

@@ -11,8 +11,13 @@
 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]
 --!strict
+local process = require("@lune/process")
 type Object = { [string]: any }
-local Array = require(script.Parent.Parent.array)
+local Array = require("../../array.lua");
+
+(os :: any).getenv = function(_name: string): string?
+	return nil
+end
 
 -- From: https://github.com/sindresorhus/has-flag/blob/main/index.js
 local function hasFlag(flag, argv_: { string }?)
@@ -31,18 +36,18 @@ elseif hasFlag("color") or hasFlag("colors") or hasFlag("color=true") or hasFlag
 end
 
 local function envForceColor(): number?
-	if os.getenv("FORCE_COLOR") then
-		if os.getenv("FORCE_COLOR") == "true" then
+	if process.env.FORCE_COLOR then
+		if process.env.FORCE_COLOR == "true" then
 			return 1
 		end
 
-		if os.getenv("FORCE_COLOR") == "false" then
+		if process.env.FORCE_COLOR == "false" then
 			return 0
 		end
 
-		return if string.len(os.getenv("FORCE_COLOR")) == 0
+		return if string.len(process.env.FORCE_COLOR) == 0
 			then 1
-			else math.min(tonumber(os.getenv("FORCE_COLOR") or "3", 10) or 3, 3)
+			else math.min(tonumber(process.env.FORCE_COLOR or "3", 10) or 3, 3)
 	end
 
 	return nil
@@ -88,7 +93,7 @@ local function _supportsColor(haveStream, options_)
 
 	-- Check for Azure DevOps pipelines.
 	-- Has to be above the `!streamIsTTY` check.
-	if os.getenv("TF_BUILD") and os.getenv("AGENT_NAME") then
+	if process.env.TF_BUILD and process.env.AGENT_NAME then
 		return 1
 	end
 
@@ -98,7 +103,7 @@ local function _supportsColor(haveStream, options_)
 
 	local min = forceColor or 0
 
-	if os.getenv("TERM") == "dumb" then
+	if process.env.TERM == "dumb" then
 		return min
 	end
 
@@ -117,15 +122,15 @@ local function _supportsColor(haveStream, options_)
 	-- 	return 1;
 	-- }
 
-	if os.getenv("CI") then
-		if os.getenv("GITHUB_ACTIONS") then
+	if process.env.CI then
+		if process.env.GITHUB_ACTIONS then
 			return 3
 		end
 
 		if
 			Array.some({ "TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "BUILDKITE", "DRONE" }, function(sign)
-				return os.getenv(sign) ~= nil
-			end) or os.getenv("CI_NAME") == "codeship"
+				return process.env[sign] ~= nil
+			end) or process.env.CI_NAME == "codeship"
 		then
 			return 1
 		end
@@ -133,44 +138,44 @@ local function _supportsColor(haveStream, options_)
 		return min
 	end
 
-	if os.getenv("TEAMCITY_VERSION") then
+	if process.env.TEAMCITY_VERSION then
 		-- Lua note: we assume TeamCity 9+ has color capabilities rather than a brittle regexp
 		-- return /^(9\.(0*[1-9]\d*)\.,\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
-		return if (tonumber(string.sub(os.getenv("TEAMCITY_VERSION") or "9.0", 1, 3)) or 9.0) > 9.0 then 1 else 0
+		return if (tonumber(string.sub(process.env.TEAMCITY_VERSION or "9.0", 1, 3)) or 9.0) > 9.0 then 1 else 0
 	end
 
-	if os.getenv("COLORTERM") then
+	if process.env.COLORTERM then
 		return 3
 	end
 
-	if os.getenv("xterm-kitty") then
+	if process.env["xterm-kitty"] then
 		return 3
 	end
 
-	if os.getenv("TERM_PROGRAM") then
-		local version = tonumber((os.getenv("TERM_PROGRAM_VERSION") or "").split(".")[1], 10) or 0
+	if process.env.TERM_PROGRAM then
+		local version = tonumber((process.env.TERM_PROGRAM_VERSION or "").split(".")[1], 10) or 0
 
-		if os.getenv("TERM_PROGRAM") == "iTerm.app" then
+		if process.env.TERM_PROGRAM == "iTerm.app" then
 			return if version >= 3 then 3 else 2
-		elseif os.getenv("TERM_PROGRAM") == "Apple_Terminal" then
+		elseif process.env.TERM_PROGRAM == "Apple_Terminal" then
 			return 2
 		end
 		-- No default
 	end
 
-	if string.find(os.getenv("TERM"), "-256") then
+	if string.find(process.env.TERM, "-256") then
 		return 2
 	end
 
 	if
 		Array.some({ "screen", "xterm", "vt100", "vt220", "rxvt", "color", "ansi", "cygwin", "linux" }, function(term)
-			return string.find(os.getenv("TERM"), term) ~= nil
+			return string.find(process.env.TERM, term) ~= nil
 		end)
 	then
 		return 1
 	end
 
-	if os.getenv("COLORTERM") then
+	if process.env.COLORTERM then
 		return 1
 	end
 
